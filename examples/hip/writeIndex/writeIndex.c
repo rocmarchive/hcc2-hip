@@ -55,15 +55,15 @@ void printArray(int *array)
   printf("]");
 }
 
-void printCudaError(hipError_t error)
+void printHipError(hipError_t error)
 {
-  printf("Cuda Error: %s\n", hipGetErrorString(error));
+  printf("Hip Error: %s\n", hipGetErrorString(error));
 }
 
-bool cudaCallSuccessful(hipError_t error)
+bool hipCallSuccessful(hipError_t error)
 {
   if (error != hipSuccess)
-    printCudaError(error);
+    printHipError(error);
   return error == hipSuccess;
 }
 
@@ -72,7 +72,7 @@ bool deviceCanCompute(int deviceID)
   bool canCompute = false;
   hipDeviceProp_t deviceProp;
   bool devicePropIsAvailable =
-    cudaCallSuccessful(hipGetDeviceProperties(&deviceProp, deviceID));
+    hipCallSuccessful(hipGetDeviceProperties(&deviceProp, deviceID));
   if (devicePropIsAvailable)
   {
     canCompute = deviceProp.computeMode != hipComputeModeProhibited;
@@ -84,7 +84,7 @@ bool deviceCanCompute(int deviceID)
 
 bool deviceIsAvailable(int *deviceID)
 {
-  return cudaCallSuccessful(hipGetDevice(deviceID));
+  return hipCallSuccessful(hipGetDevice(deviceID));
 }
 
 // We always use device 0
@@ -112,7 +112,7 @@ int main()
   printf("\n");
 
   int *deviceArray;
-  if (!cudaCallSuccessful(hipMalloc((void **)&deviceArray, N*sizeof(int))))
+  if (!hipCallSuccessful(hipMalloc((void **)&deviceArray, N*sizeof(int))))
   {
     printf("Unable to allocate device memory\n");
     return 0;
@@ -120,7 +120,7 @@ int main()
 
   hipLaunchKernelGGL((writeIndex), dim3(N), dim3(1), 0, 0, deviceArray);
 
-  if (cudaCallSuccessful(hipMemcpy(hostArray,
+  if (hipCallSuccessful(hipMemcpy(hostArray,
                                      deviceArray,
                                      N * sizeof(int),
                                      hipMemcpyDeviceToHost)))
