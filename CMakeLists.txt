@@ -120,6 +120,8 @@ include_directories(
     install(TARGETS hiprt LIBRARY DESTINATION "lib")
   endif()
 
+  install(DIRECTORY include/hip DESTINATION lib/clang/7.0.0/include)
+
   # temporarily create prepare-builtins binary till it becomes part of the LLVM install
   find_package(LLVM REQUIRED CONFIG PATHS ${CMAKE_INSTALL_PREFIX} NO_DEFAULT_PATH)
   list(APPEND CMAKE_MODULE_PATH ${LLVM_CMAKE_DIR})
