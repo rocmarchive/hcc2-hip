@@ -1,4 +1,3 @@
-#include "hip/hip_runtime.h"
 // MIT License
 //
 // Copyright (c) 2017 Advanced Micro Devices, Inc. All Rights Reserved.
@@ -24,6 +23,7 @@
 // SOFTWARE.
 
 #include <stdio.h>
+#include "hip/hip_runtime.h"
 
 #define N 10
 
