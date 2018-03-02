@@ -38,12 +38,47 @@ THE SOFTWARE.
 
 #if defined __HCC__
 #define __HIP_PLATFORM_HCC__
-#elif defined __HIPCC__
+#elif defined __HIP__
 #define __HIP_PLATFORM_CLANG__
 #else
 // For "-x cuda" or any non-clang compiler, assume compile-time convert hip to cuda
 #define __HIP_PLATFORM_NVCC__
 #endif 
+
+#if defined __HIP__
+#define __global__ __attribute__((global))
+#define __device__ __attribute__((device))
+#define __shared__ __attribute__((shared))
+#define __managed__ __attribute__((managed))
+#define __host__ __attribute__((host))
+#define __constant__ __attribute__((constant))
+#define __noinline__ __attribute__((noinline))
+
+#include <cstdlib>
+extern "C" {
+// We need these declarations and wrappers for device-side
+// malloc/free/printf calls to work without relying on
+// -fcuda-disable-target-call-checks option.
+__device__ int vprintf(const char *, const char *);
+__device__ void free(void *) __attribute((nothrow));
+__device__ void *malloc(size_t) __attribute((nothrow)) __attribute__((malloc));
+__device__ void __assertfail(const char *__message, const char *__file,
+                             unsigned __line, const char *__function,
+                             size_t __charSize) __attribute__((noreturn));
+// In order for standard assert() macro on linux to work we need to
+// provide device-side __assert_fail()
+__device__ static inline void __assert_fail(const char *__message,
+                                            const char *__file, unsigned __line,
+                                            const char *__function) {
+  __assertfail(__message, __file, __line, __function, sizeof(char));
+}
+
+// Clang will convert printf into vprintf, but we still need
+// device-side declaration for it.
+__device__ int printf(const char *, ...);
+} // extern "C"
+
+#endif // __HIP__
 
 // Some standard header files, these are included by hc.hpp and so want to make them avail on both
 // paths to provide a consistent include env and avoid "missing symbol" errors that only appears
@@ -52,7 +87,6 @@ THE SOFTWARE.
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-
 #if __cplusplus > 199711L
 #include <thread>
 #endif

@@ -32,7 +32,7 @@ THE SOFTWARE.
 
 #if defined __HCC__
 #define __HIP_PLATFORM_HCC__
-#elif defined __HIPCC__
+#elif defined __HIP__
 #define __HIP_PLATFORM_CLANG__
 #else
 // For "-x cuda" or any non-clang compiler, assume compile-time convert hip to cuda

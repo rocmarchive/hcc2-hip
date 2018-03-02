@@ -34,7 +34,7 @@ THE SOFTWARE.
 #if defined(__NVCC__)
 #define __HIP_PLATFORM_NVCC__
 #ifdef __CUDACC__
-#define __HIPCC__
+#define __HIP__
 #endif
 
 #endif //__NVCC__

@@ -49,9 +49,9 @@
       hipModuleLoadData
 */
 
-#define __HIPCC__ 1
+#define __HIP__
 #define __host__
-#define __device__ 
+#define __device__
 #include <hip/hip_runtime_api.h>
 
 #include "hipLaunchByPtr.h"
