@@ -190,9 +190,11 @@ foreach(mcpu ${mcpus})
   add_custom_target(lib${libname}-${mcpu} ALL DEPENDS ${final_bc_filename})
 
   if(CMAKE_BUILD_TYPE MATCHES Debug)
-    install(FILES ${OUTPUTDIR}/${final_bc_filename} DESTINATION "lib-debug/libdevice")
+    install(FILES ${OUTPUTDIR}/${final_bc_filename} DESTINATION "lib-debug/libdevice/${mcpu}"
+      RENAME lib${libname}.bc)
   else()
-    install(FILES ${OUTPUTDIR}/${final_bc_filename} DESTINATION "lib/libdevice")
+    install(FILES ${OUTPUTDIR}/${final_bc_filename} DESTINATION "lib/libdevice/${mcpu}"
+      RENAME lib${libname}.bc)
   endif()
 
 endforeach()
