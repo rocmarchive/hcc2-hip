@@ -30,7 +30,7 @@
 # SOFTWARE.
 
 TESTNAME =writeIndex
-FILETYPE =c
+FILETYPE =cpp
 
 ifeq ($(HCC2),)
 HCC2 = /opt/rocm/hcc2
@@ -43,17 +43,12 @@ TARGETS =--cuda-gpu-arch=gfx803
 endif
 
 CC       =$(HCC2)/bin/clang++
-CFLAGS   =-O3 -std=c++11 -x hip
+CFLAGS   =-x hip
 
+# Add cudart only if we have an Nvidia sm_ target
 ifeq (sm_,$(findstring sm_,$(TARGETS)))
-  LFLAGS +=-L$(CUDA)/targets/x86_64-linux/lib -lcudart
-  LFLAGS +=-Wl,-rpath,$(CUDA)/targets/x86_64-linux/lib
-endif
-
-# You do not need the cuda sdk for gfx targets
-ifeq (gfx,$(findstring gfx,$(TARGETS)))
-  LFLAGS +=-L/opt/rocm/lib -L$(HCC2)/lib -lhip_hcc -lhc_am -lhiprt
-  LFLAGS +=-Wl,-rpath,/opt/rocm/lib -Wl,-rpath,$(HCC2)/lib
+  LFLAGS +=-L$(CUDA)/targets/x86_64-linux/lib -lcudart -Wl,-rpath,$(CUDA)/targets/x86_64-linux/lib
+  CFLAGS +=-I$(CUDA)/include
 endif
 
 # ----- Demo compile and link in one step, no object code saved
