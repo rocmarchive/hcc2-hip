@@ -181,4 +181,14 @@ if [ "$1" == "install" ] ; then
          echo "ERROR make install failed "
          exit 1
       fi
+      #  Put all libraries in the compiler installation
+      echo
+      echo cp -p /opt/rocm/hip/lib/libhip_hcc.so $INSTALL_DIR/lib/libhip_hcc.so
+      $SUDO cp -p /opt/rocm/hip/lib/libhip_hcc.so $INSTALL_DIR/lib/libhip_hcc.so
+      echo cp -p /opt/rocm/hcc/lib/libhc_am.so $INSTALL_DIR/lib/libhc_am.so
+      $SUDO cp -p /opt/rocm/hcc/lib/libhc_am.so $INSTALL_DIR/lib/libhc_am.so
+      echo cp -p /opt/rocm/hip/lib/libhip_hcc.so $INSTALL_DIR/lib-debug/libhip_hcc.so
+      $SUDO cp -p /opt/rocm/hip/lib/libhip_hcc.so $INSTALL_DIR/lib-debug/libhip_hcc.so
+      echo cp -p /opt/rocm/hcc/lib/libhc_am.so $INSTALL_DIR/lib-debug/libhc_am.so
+      $SUDO cp -p /opt/rocm/hcc/lib/libhc_am.so $INSTALL_DIR/lib-debug/libhc_am.so
 fi
