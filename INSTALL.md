@@ -45,14 +45,14 @@ which are mirrors of the repos above.
     git clone http://github.com/rocm-developer-tools/llvm
     git clone http://github.com/rocm-developer-tools/lld
     cd $HOME/git/hcc2/clang
-    git checkout HIP-180228
+    git checkout HIP-180308
     cd $HOME/git/hcc2/llvm
-    git checkout HIP-180228
+    git checkout HIP-180308
     cd $HOME/git/hcc2/lld
-    git checkout HIP-180228
+    git checkout HIP-180308
     ```
-4.  Build llvm, lld, and clang as you normally would but set the
-    install path to `/usr/local/hip_0.5-0`. One suggestion is to
+4.  Build llvm, lld, and clang as you normally would but you MUST set the
+    install path to `/opt/rocm/hcc2/hcc2_0.5-0`. One suggestion is to
     create soft links under llvm/tools for clang and lld, then compile
     llvm in a temporary directory and install:
     ```console
@@ -62,24 +62,25 @@ which are mirrors of the repos above.
     cd /tmp/$USER/build_llvm
     cmake $HOME/git/hcc2/llvm
     make -j8
-    sudo cmake -DCMAKE_INSTALL_PREFIX=/usr/local/hip_0.5-0 -P cmake_install.cmake
+    sudo cmake -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcc2/hcc2_0.5-0 -P cmake_install.cmake
     ```
-5.  Link `/usr/local/hip_0.5-0` to `/usr/local/hip` with this command.
+5.  Link `/opt/rocm/hcc2/hcc2_0.5-0` to `/opt/rocm/hcc2` with this command.
     ```console
-    ln -sf /usr/local/hip_0.5-0 /usr/local/hip
+    ln -sf /opt/rocm/hcc2_0.5-0 /opt/rocm/hcc2
     ```
-6.  Install libamdgcn. This are extensive device libraries for various radeon processors.
+6.  Install hcc2-libdevice. These are the device libraries for various radeon processors.
     If on debian system:
     ```console
-    wget https://github.com/ROCm-Developer-Tools/hcc2/releases/download/rel_0.4-0/libamdgcn_0.5-0_all.deb
-    sudo dpkg -i libamdgcn_0.5-0_all.deb
+    wget https://github.com/ROCm-Developer-Tools/hcc2/releases/download/rel_0.4-0/hcc2-libdevice_0.5-0_all.deb
+    sudo dpkg -i hcc2-libdevice_0.5-0_all.deb
     ```
     If on an rpm system:
     ```console
-    wget https://github.com/ROCm-Developer-Tools/hcc2/releases/download/rel_0.4-0/libamdgcn-0.5-0.noarch.rpm
-    sudo rpm -i libamdgcn-0.5-0.noarch.rpm
+    wget https://github.com/ROCm-Developer-Tools/hcc2/releases/download/rel_0.4-0/hcc2-libdevice-0.5-0.noarch.rpm
+    sudo rpm -i hcc2-libdevice-0.5-0.noarch.rpm
     ```
-    These libraries install in `/opt/rocm/libamdgcn`.
+    The debian package will install bc libraries in `/opt/rocm/hcc2/lib/libdevice`.
+    This is why you MUST install the compiler into /opt/rocm/hcc2 (see steps 4 and 5).
     *You will not get these libraries with the standard rocm install*.
 
 7.  Download, build and install the hip device and host runtime for amdgcn:
@@ -87,14 +88,14 @@ which are mirrors of the repos above.
     cd $HOME/git/hcc2
     git clone http://github.com/rocm-developer-tools/hcc2-hip
     cd $HOME/git/hcc2/hcc2-hip/bin
-    export HCC2=/usr/local/hip
+    export HCC2=/opt/rocm/hcc2
     ./build_hiprt.sh
     ./build_hiprt.sh install
     ```
 8. Test:
     ```console
     cd $HOME/git/hcc2/hcc2-hip/examples/hip/matrixmul
-    export HCC2=/usr/local/hip
+    export HCC2=/opt/rocm/hcc2
     make
     make run
     ```
