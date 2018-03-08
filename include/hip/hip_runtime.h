@@ -38,14 +38,18 @@ THE SOFTWARE.
 
 #if defined __HCC__
 #define __HIP_PLATFORM_HCC__
-#elif defined __HIP__
+// For nvidia targets, the clang cuda wrappers will turn on __CUDACC__
+// for both the host and device passes. __CUDACC__ will not be set
+// for amdgcn targets. 
+#elif defined(__HIP__) && !defined(__CUDACC__)
 #define __HIP_PLATFORM_CLANG__
 #else
-// For "-x cuda" or any non-clang compiler, assume compile-time convert hip to cuda
+// For "-x hip" on nvidia targets, or or any non-clang compiler, 
+// assume compile-time convert hip to cuda
 #define __HIP_PLATFORM_NVCC__
 #endif 
 
-#if defined __HIP__
+#if defined __HIP_PLATFORM_CLANG__
 #define __global__ __attribute__((global))
 #define __device__ __attribute__((device))
 #define __shared__ __attribute__((shared))
@@ -78,7 +82,7 @@ __device__ static inline void __assert_fail(const char *__message,
 __device__ int printf(const char *, ...);
 } // extern "C"
 
-#endif // __HIP__
+#endif // __HIP_PLATFORM_CLANG__
 
 // Some standard header files, these are included by hc.hpp and so want to make them avail on both
 // paths to provide a consistent include env and avoid "missing symbol" errors that only appears
