@@ -39,7 +39,7 @@ ifeq ($(CUDA),)
 CUDA = /usr/local/cuda
 endif
 ifeq ($(TARGETS),)
-TARGETS =--gpu-arch=gfx803 --gpu-arch=gfx900
+TARGETS =--offload-arch=gfx803 --offload-arch=gfx900
 endif
 
 CC       =$(HCC2)/bin/clang++
