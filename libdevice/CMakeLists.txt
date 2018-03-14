@@ -25,7 +25,7 @@ project(${libname})
 set(mcpus $ENV{GFXLIST})
 if(mcpus)
 else()
-  set(mcpus gfx600 gfx601 gfx700 gfx701 gfx702 gfx703 gfx704 gfx800 gfx801 gfx803 gfx804 gfx810 gfx900 gfx901 gfx902)
+  set(mcpus gfx600 gfx601 gfx700 gfx701 gfx702 gfx703 gfx704 gfx801 gfx803 gfx810 gfx900)
 
 endif()
 message("---> Building lib${libname} for gfx processors  ${amdgcn_mcpus}")
@@ -44,10 +44,11 @@ endif()
 file(GLOB sources
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cu
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cl
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.ll)
 
 ###############################################################################
-# Macros to create bc library from ll, cu, or cl
+# Macros to create bc library from ll, cu, cl, or cpp
 ###############################################################################
 macro(add_ll_bc_library)
   set(llbc_files)
@@ -107,9 +108,38 @@ macro(add_ocl_bc_library)
 
 endmacro()
 
+macro(add_hip_bc_library)
+
+  set(hip_cmd ${LLVM_COMPILER}/bin/clang++ --cuda-device-only -c -emit-llvm -x hip
+    -I${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+  set(ll_files)
+
+  foreach(file ${hip_sources})
+    get_filename_component(fname ${file} NAME_WE)
+    set(ll_filename ${fname}.${mcpu}.ll)
+    file(GLOB h_files "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
+    add_custom_command(
+      OUTPUT ${ll_filename}
+      COMMAND ${hip_cmd} --offload-arch=${mcpu} ${file} -o ${ll_filename}
+      DEPENDS "${file}" ${h_files}
+      )
+    list(APPEND ll_files ${ll_filename})
+  endforeach()
+
+  add_custom_command(
+    OUTPUT linkout.hip.${mcpu}.bc
+    COMMAND ${LLVM_COMPILER}/bin/llvm-link ${ll_files} -o linkout.hip.${mcpu}.bc
+    DEPENDS ${ll_files}
+    )
+  list(APPEND bc_files linkout.hip.${mcpu}.bc)
+
+endmacro()
+
+
 macro(add_cuda_bc_library)
 
-  set(cu_cmd ${{LLVM_COMPILER}/bin/clang++
+  set(cu_cmd ${LLVM_COMPILER}/bin/clang++
     -S -emit-llvm
     --cuda-device-only
     -nocudalib
@@ -144,6 +174,8 @@ endmacro()
 set(cuda_sources)
 set(ocl_sources)
 set(ll_sources)
+set(hip_sources)
+
 foreach(file ${sources})
   get_filename_component(fext ${file} EXT)
   if (fext STREQUAL ".cu")
@@ -154,6 +186,9 @@ foreach(file ${sources})
   endif()
   if (fext STREQUAL ".ll")
     list(APPEND ll_sources ${file})
+  endif()
+  if (fext STREQUAL ".cpp")
+    list(APPEND hip_sources ${file})
   endif()
 endforeach()
 
@@ -170,6 +205,9 @@ foreach(mcpu ${mcpus})
   endif()
   if (cuda_sources)
     add_cuda_bc_library()
+  endif()
+  if (hip_sources)
+    add_hip_bc_library()
   endif()
 
   add_custom_command(
