@@ -183,12 +183,21 @@ if [ "$1" == "install" ] ; then
       fi
       #  Put all libraries in the compiler installation
       echo
-      echo cp -p /opt/rocm/hip/lib/libhip_hcc.so $INSTALL_DIR/lib/libhip_hcc.so
+      echo  cp -p /opt/rocm/hip/lib/libhip_hcc.so $INSTALL_DIR/lib/libhip_hcc.so
       $SUDO cp -p /opt/rocm/hip/lib/libhip_hcc.so $INSTALL_DIR/lib/libhip_hcc.so
-      echo cp -p /opt/rocm/hcc/lib/libhc_am.so $INSTALL_DIR/lib/libhc_am.so
+      echo  cp -p /opt/rocm/hcc/lib/libhc_am.so $INSTALL_DIR/lib/libhc_am.so
       $SUDO cp -p /opt/rocm/hcc/lib/libhc_am.so $INSTALL_DIR/lib/libhc_am.so
-      echo cp -p /opt/rocm/hip/lib/libhip_hcc.so $INSTALL_DIR/lib-debug/libhip_hcc.so
+      echo  cp -p /opt/rocm/hip/lib/libhip_hcc.so $INSTALL_DIR/lib-debug/libhip_hcc.so
       $SUDO cp -p /opt/rocm/hip/lib/libhip_hcc.so $INSTALL_DIR/lib-debug/libhip_hcc.so
-      echo cp -p /opt/rocm/hcc/lib/libhc_am.so $INSTALL_DIR/lib-debug/libhc_am.so
+      echo  cp -p /opt/rocm/hcc/lib/libhc_am.so $INSTALL_DIR/lib-debug/libhc_am.so
       $SUDO cp -p /opt/rocm/hcc/lib/libhc_am.so $INSTALL_DIR/lib-debug/libhc_am.so
+
+      echo  cp -p /opt/rocm/hcc/lib/libmcwamp_cpu.so $INSTALL_DIR/lib/libmcwamp_cpu.so
+      $SUDO cp -p /opt/rocm/hcc/lib/libmcwamp_cpu.so $INSTALL_DIR/lib/libmcwamp_cpu.so
+      echo  cp -p /opt/rocm/hcc/lib/libmcwamp_cpu.so $INSTALL_DIR/lib-debug/libmcwamp_cpu.so
+      $SUDO cp -p /opt/rocm/hcc/lib/libmcwamp_cpu.so $INSTALL_DIR/lib-debug/libmcwamp_cpu.so
+      echo  cp -p /opt/rocm/hcc/lib/libmcwamp_hsa.so $INSTALL_DIR/lib/libmcwamp_hsa.so
+      $SUDO cp -p /opt/rocm/hcc/lib/libmcwamp_hsa.so $INSTALL_DIR/lib/libmcwamp_hsa.so
+      echo  cp -p /opt/rocm/hcc/lib/libmcwamp_hsa.so $INSTALL_DIR/lib-debug/libmcwamp_hsa.so
+      $SUDO cp -p /opt/rocm/hcc/lib/libmcwamp_hsa.so $INSTALL_DIR/lib-debug/libmcwamp_hsa.so
 fi
