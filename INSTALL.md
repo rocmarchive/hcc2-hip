@@ -62,7 +62,7 @@ which are mirrors of the repos above.
     cd /tmp/$USER/build_llvm
     cmake $HOME/git/hcc2/llvm
     make -j8
-    sudo cmake -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcc2/hcc2_0.5-0 -P cmake_install.cmake
+    sudo cmake -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcc2_0.5-0 -P cmake_install.cmake
     ```
 5.  Link `/opt/rocm/hcc2/hcc2_0.5-0` to `/opt/rocm/hcc2` with this command.
     ```console
