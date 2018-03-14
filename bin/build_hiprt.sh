@@ -36,7 +36,7 @@
 
 HCC2=${HCC2:-/opt/rocm/hcc2}
 HIPRT_REPO=${HIPRT_REPO:-/home/$USER/git/hcc2/hcc2-hip}
-GFXLIST=${GFXLIST:-"gfx600 gfx601 gfx700 gfx701 gfx702 gfx703 gfx704 gfx800 gfx801 gfx803 gfx804 gfx810 gfx900 gfx901 gfx902"}
+GFXLIST=${GFXLIST:-"gfx600 gfx601 gfx700 gfx701 gfx702 gfx703 gfx704 gfx801 gfx803 gfx810 gfx900"}
 
 SUDO=${SUDO:-set}
 if [ $SUDO == "set" ] ; then
