@@ -10,14 +10,26 @@
 #
 ##===----------------------------------------------------------------------===##
 
-set(HCC2 $ENV{HCC2})
-if(HCC2)
-  set(LLVM_COMPILER ${HCC2})
+#  Try to get LLVM_COMPILER from HIP, then HCC2 , then default /usr/local/hip
+set(HIP $ENV{HIP})
+if(HIP)
+  set(LLVM_COMPILER ${HIP})
 else()
-  set(LLVM_COMPILER "/usr/local/hip")
+  set(HCC2 $ENV{HIP})
+  if(HCC2)
+    set(LLVM_COMPILER ${HCC2})
+  else()
+    set(LLVM_COMPILER "/usr/local/hip")
+  endif()
 endif()
 
-set(libname "icuda2gcn")
+# Assome rocm-device-libs repository is next to hcc2-hip repository 
+set(ROCDL ${CMAKE_CURRENT_SOURCE_DIR}/../../rocm-device-libs)
+set(ROCDL_INC_OCKL ${ROCDL}/ockl/inc)
+set(ROCDL_INC_OCML ${ROCDL}/ocml/inc)
+set(ROCDL_INC_IRIF ${ROCDL}/irif/inc)
+
+set(libname "hiprt")
 message("---> Building lib${libname} with Compiler ${LLVM_COMPILER}")
 project(${libname})
 
@@ -26,9 +38,11 @@ set(mcpus $ENV{GFXLIST})
 if(mcpus)
 else()
   set(mcpus gfx600 gfx601 gfx700 gfx701 gfx702 gfx703 gfx704 gfx801 gfx803 gfx810 gfx900)
-
 endif()
-message("---> Building lib${libname} for gfx processors  ${amdgcn_mcpus}")
+
+separate_arguments(mcpus)
+
+message("---> Building lib${libname} for gfx processors: ${mcpus}")
 
 #optimization level
 set(optimization_level 2)
@@ -81,7 +95,10 @@ macro(add_ocl_bc_library)
     -Dcl_khr_fp64 -Dcl_khr_fp16
     -Dcl_khr_subgroups -Dcl_khr_int64_base_atomics -Dcl_khr_int64_extended_atomics
     -x cl -Xclang -cl-std=CL2.0 -Xclang -finclude-default-header
-    -target amdgcn--amdhsa
+    -target amdgcn-amd-amdhsa
+    -I${ROCDL_INC_OCKL}
+    -I${ROCDL_INC_OCML}
+    -I${ROCDL_INC_IRIF}
     -I${CMAKE_CURRENT_SOURCE_DIR}/src
     -I${LLVM_COMPILER}/include)
 

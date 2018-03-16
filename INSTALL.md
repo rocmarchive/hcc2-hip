@@ -1,6 +1,6 @@
 # Instructions to build and install hiprt and LLVM.
 
-This hcc2-hip repository is support the hip language in clang. 
+This hcc2-hip repository is to support the hip language in clang. 
 The hip language is triggered by the -x hip clang option.
 Like cuda, the hip language is a kernel definition language
 that compiles into LLVM bytecode for both Radeon and Nvidia
@@ -19,7 +19,7 @@ It is our intention to push all this upstream. Till then, you should
 build from our development branch of the clang, llvm, and lld repositories. 
 which are mirrors of the repos above. 
 
-### Steps for hcc2 for amdgcn
+### Build and install HIP components
 
 1.  Install ROCm Software Stack.
 
@@ -39,63 +39,61 @@ which are mirrors of the repos above.
 3.  Download the llvm, clang, and lld source code repositories from ROCm
     Developer Tools and checkout the HIP development branch.
     ```console
-    mkdir -p $HOME/git/hcc2
-    cd $HOME/git/hcc2
+    mkdir -p $HOME/git/hip
+    cd $HOME/git/hip
     git clone http://github.com/rocm-developer-tools/clang
     git clone http://github.com/rocm-developer-tools/llvm
     git clone http://github.com/rocm-developer-tools/lld
-    cd $HOME/git/hcc2/clang
+    cd $HOME/git/hip/clang
     git checkout HIP-180308
-    cd $HOME/git/hcc2/llvm
+    cd $HOME/git/hip/llvm
     git checkout HIP-180308
-    cd $HOME/git/hcc2/lld
+    cd $HOME/git/hip/lld
     git checkout HIP-180308
     ```
-4.  Build llvm, lld, and clang as you normally would but you MUST set the
-    install path to `/opt/rocm/hcc2/hcc2_0.5-0`. One suggestion is to
-    create soft links under llvm/tools for clang and lld, then compile
-    llvm in a temporary directory and install:
+    You also need the master branch of this repo and the rocm-device-libs.
     ```console
-    ln -s $HOME/git/hcc2/clang $HOME/git/hcc2/llvm/tools/clang
-    ln -s $HOME/git/hcc2/lld $HOME/git/hcc2/llvm/tools/lld
-    mkdir -p /tmp/$USER/build_llvm
-    cd /tmp/$USER/build_llvm
-    cmake $HOME/git/hcc2/llvm
-    make -j8
-    sudo cmake -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcc2_0.5-0 -P cmake_install.cmake
-    ```
-5.  Link `/opt/rocm/hcc2/hcc2_0.5-0` to `/opt/rocm/hcc2` with this command.
-    ```console
-    ln -sf /opt/rocm/hcc2_0.5-0 /opt/rocm/hcc2
-    ```
-6.  Install hcc2-libdevice. These are the device libraries for various radeon processors.
-    If on debian system:
-    ```console
-    wget https://github.com/ROCm-Developer-Tools/hcc2/releases/download/rel_0.4-0/hcc2-libdevice_0.5-0_all.deb
-    sudo dpkg -i hcc2-libdevice_0.5-0_all.deb
-    ```
-    If on an rpm system:
-    ```console
-    wget https://github.com/ROCm-Developer-Tools/hcc2/releases/download/rel_0.4-0/hcc2-libdevice-0.5-0.noarch.rpm
-    sudo rpm -i hcc2-libdevice-0.5-0.noarch.rpm
-    ```
-    The debian package will install bc libraries in `/opt/rocm/hcc2/lib/libdevice`.
-    This is why you MUST install the compiler into /opt/rocm/hcc2 (see steps 4 and 5).
-    *You will not get these libraries with the standard rocm install*.
-
-7.  Download, build and install the hip device and host runtime for amdgcn:
-    ```console
-    cd $HOME/git/hcc2
+    git clone http://github.com/radeonopencompute/rocm-device-libs
     git clone http://github.com/rocm-developer-tools/hcc2-hip
-    cd $HOME/git/hcc2/hcc2-hip/bin
-    export HCC2=/opt/rocm/hcc2
+    ```
+4.  Build and install the compiler.
+    Smart llvm build and install scripts can be found in the bin directory.
+    Run these commands.
+    ```console
+    cd $HOME/git/hip/hcc2-hip/bin
+    ./build_hip.sh
+    ./build_hip.sh install
+    ```
+    The build scripts are customizable with environment variables. For example,
+    to install the compiler and components in a location other than the default
+    "/usr/local/hip" such as "$HOME/install/hip", change the install location 
+    with the HIP and SUDO environment variables as follows:
+    as follows. 
+    ```console
+    export HIP=$HOME/install/hip
+    export SUDO=noset
+    ```
+    The command "./build_hip.sh help" will give you more information on the 
+    build_hip.sh script. 
+
+5.  Build and install the rocm-device-libs.
+    We recommend not building for all gfx processors, just those you need.
+    The environment variable GFXLIST controls this. 
+    ```console
+    export GFXLIST="gfx803 gfx900"
+    ./build_libdevice.sh
+    ./build_libdevice.sh install
+    ```
+    Remember to retain the enviroment variable HIP if you changed it.
+6.  Build and install the hip device and host runtimes.
+    ```console
     ./build_hiprt.sh
     ./build_hiprt.sh install
     ```
-8. Test:
+    Remember to retain the enviroment variable HIP if you changed it.
+7. Test:
     ```console
-    cd $HOME/git/hcc2/hcc2-hip/examples/hip/matrixmul
-    export HCC2=/opt/rocm/hcc2
+    cd $HOME/git/hip/hcc2-hip/examples/hip/matrixmul
     make
     make run
     ```

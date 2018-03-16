@@ -2,13 +2,13 @@
 #
 #  File: build_hiprt.sh
 #        Build the hip host and device runtimes, 
-#        The install option will install components into the hcc2 installation. 
+#        The install option will install components into the hip compiler installation. 
 #        The components include:
-#          hip headers installed in $HCC2/include/hip
-#          hip host runtime installed in $HCC2/lib/libhiprt.so
-#          hip device runtime installed in $HCC2/lib/libdevice/libhiprt.<devicetype.bc
-#          Debug hip host runtime installed in $HCC2/lib-debug/libhiprt.so
-#          Debug hip device runtime installed in $HCC2/lib/lib-debug/libdevice/libhiprt.<devicetype.bc
+#          hip headers installed in $HIP/include/hip
+#          hip host runtime installed in $HIP/lib/libhiprt.so
+#          hip device runtime installed in $HIP/lib/libdevice/libhiprt.<devicetype.bc
+#          Debug hip host runtime installed in $HIP/lib-debug/libhiprt.so
+#          Debug hip device runtime installed in $HIP/lib/lib-debug/libdevice/libhiprt.<devicetype.bc
 #
 # MIT License
 #
@@ -34,9 +34,15 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-HCC2=${HCC2:-/opt/rocm/hcc2}
-HIPRT_REPO=${HIPRT_REPO:-/home/$USER/git/hcc2/hcc2-hip}
+HIP=${HIP:-/usr/local/hip}
+HIP_REPOS=${HIP_REPOS:-/home/$USER/git/hip}
+BUILD_HIP=${BUILD_HIP:-$HIP_REPOS}
+HIPRT_REPO_NAME=${HIPRT_REPO_NAME:-hcc2-hip}
+HIP_VERSION=${HIP_VERSION:-"0.5-0"}
 GFXLIST=${GFXLIST:-"gfx600 gfx601 gfx700 gfx701 gfx702 gfx703 gfx704 gfx801 gfx803 gfx810 gfx900"}
+
+HIPRT_REPO="$HIP_REPOS/$HIPRT_REPO_NAME"
+echo HIPRT_REPO=$HIPRT_REPO
 
 SUDO=${SUDO:-set}
 if [ $SUDO == "set" ] ; then
@@ -45,13 +51,10 @@ else
    SUDO=""
 fi
 
-BUILD_DIR=/tmp/$USER/hiprt
+BUILD_DIR=$BUILD_HIP/build_hiprt
 
-HCC2_VERSION=0.5
-HCC2_MOD=0
-
-INSTALL_DIR="${HCC2}_${HCC2_VERSION}-${HCC2_MOD}"
-LLVM_BUILD=$HCC2
+INSTALL_DIR="${HIP}_${HIP_VERSION}"
+LLVM_BUILD=$INSTALL_DIR
 
 if [ "$1" == "-h" ] || [ "$1" == "help" ] || [ "$1" == "-help" ] ; then
   echo " "
@@ -68,9 +71,10 @@ if [ ! -d $HIPRT_REPO ] ; then
    exit 1
 fi
 
-if [ ! -f $HCC2/bin/clang ] ; then
-   echo "ERROR:  Missing file $HCC2/bin/clang"
-   echo "        Build the HCC2 llvm compiler in $HCC2 first"
+if [ ! -f $HIP/bin/clang ] ; then
+   echo "ERROR:  Missing file $HIP/bin/clang"
+   echo "        Build the HIP llvm compiler in $HIP first"
+   echo "        Suggest you use build_hip.sh"
    echo "        This is needed to build the device libraries"
    echo " "
    exit 1
@@ -99,18 +103,21 @@ if [ "$1" != "nocmake" ] && [ "$1" != "install" ] ; then
      echo
      echo "FRESH START , CLEANING UP FROM PREVIOUS BUILD"
      echo rm -rf $BUILD_DIR/build_lib
-     rm -rf $BUILD_DIR/build_lib
+     rm -rf $BUILD_DIR
   fi
 
   MYCMAKEOPTS="-DCMAKE_BUILD_TYPE=$BUILDTYPE -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR -DBUILD_SHARED_LIBS=ON -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DLLVM_DIR=$LLVM_BUILD/lib/cmake/llvm"
 
   mkdir -p $BUILD_DIR/build_lib
   cd $BUILD_DIR/build_lib
+  echo 
   echo " -----Running hiprt cmake ---- "
-  echo cmake $MYCMAKEOPTS $HIPRT_REPO
+  echo "   cd $BUILD_DIR/build_lib"
+  echo "   cmake $MYCMAKEOPTS $HIPRT_REPO"
   cmake $MYCMAKEOPTS $HIPRT_REPO
   if [ $? != 0 ] ; then
-      echo "ERROR hiprt cmake failed. Cmake flags"
+      echo 
+      echo "ERROR hiprt cmake failed. Cmake flags:"
       echo "      $MYCMAKEOPTS"
       exit 1
   fi

@@ -81,6 +81,8 @@ find_path (
 
 find_package(LLVM 7 CONFIG
   PATHS
+  $ENV{HIP}
+  /usr/local/hip
   $ENV{HCC2}
   /opt/rocm/hcc2
   )

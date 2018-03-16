@@ -32,8 +32,8 @@
 TESTNAME =matrixmul
 FILETYPE =cpp
 
-ifeq ($(HCC2),)
-HCC2 = /opt/rocm/hcc2
+ifeq ($(HIP),)
+HIP = /usr/local/hip
 endif
 ifeq ($(CUDA),)
 CUDA = /usr/local/cuda
@@ -42,7 +42,7 @@ ifeq ($(TARGETS),)
 TARGETS =--offload-arch=gfx803 
 endif
 
-CC       =$(HCC2)/bin/clang++
+CC       =$(HIP)/bin/clang++
 CFLAGS   =-x hip
 
 # Add cudart only if we have an Nvidia sm_ target
@@ -94,13 +94,10 @@ help:
 	@echo "  make help 		// this help"
 	@echo
 	@echo "Environment Variables:"
-	@echo "  HCC2      default: /opt/rocm/hcc2        value: $(HCC2)"
+	@echo "  HIP       default: /usr/local/hip        value: $(HIP)"
 	@echo "  CUDA      default: /usr/local/cuda       value: $(CUDA)"
-	@echo "  TARGETS   default: --cuda-gpu-arch=gfx803"
+	@echo "  TARGETS   default: --offload-arch=gfx803"
 	@echo "              value: $(TARGETS)"
-	@echo
-	@echo "Link Flags:"
-	@echo "  Link flags: $(LFLAGS)"
 	@echo
 
 # Cleanup anything this makefile can create
