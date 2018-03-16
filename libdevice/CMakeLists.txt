@@ -111,6 +111,7 @@ endmacro()
 macro(add_hip_bc_library)
 
   set(hip_cmd ${LLVM_COMPILER}/bin/clang++ --cuda-device-only -c -emit-llvm -x hip
+    -I${CMAKE_CURRENT_SOURCE_DIR}/../include 
     -I${CMAKE_CURRENT_SOURCE_DIR}/src)
 
   set(ll_files)
