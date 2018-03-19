@@ -1,25 +1,17 @@
-# Instructions to build and install hiprt and LLVM.
+# Instructions to build the CLANG HIP compiler
 
-This hcc2-hip repository is to support the hip language in clang. 
-The hip language is triggered by the -x hip clang option.
-Like cuda, the hip language is a kernel definition language
-that compiles into LLVM bytecode for both Radeon and Nvidia
-GPUs backend compilers. 
+This hcc2-hip repository contains the runtime support for clang hip.
+Like cuda, HIP is a kernel definition language that compiles into 
+LLVM bytecode for both Radeon and Nvidia GPUs backend compilers.  
+The HIP language is triggered by the new "-x hip" clang option.
 
-The hip language reuses the clang cuda toolchain.
-The support for cuda inside clang was started by Google for Nvidia
-GPUs.  
+The clang modifications to support HIP are not all upstream.  
+It is our intention to push all this upstream. Till then, you must
+build HIP from the clang, llvm, and lld repositories found at 
+https://github.com/RadeonOpenCompute. 
+Use branch amd-hip for clang and branch amd-commmon for llvm and lld. 
 
-Support for clang and llvm is found in the latest upstream 
-repositories, found at:
-<http://llvm.org/git/clang>.
-
-Our modifications to support hip and amdgcn are not all upstream.  
-It is our intention to push all this upstream. Till then, you should 
-build from our development branch of the clang, llvm, and lld repositories. 
-which are mirrors of the repos above. 
-
-### Build and install HIP components
+### Build and install HIP compiler and components
 
 1.  Install ROCm Software Stack.
 
@@ -36,33 +28,36 @@ which are mirrors of the repos above.
     The CUDA Toolkit 8.0 can be downloaded here:
     <https://developer.nvidia.com/cuda-80-ga2-download-archive>
 
-3.  Download the llvm, clang, and lld source code repositories from ROCm
-    Developer Tools and checkout the HIP development branch.
+3.  Download the llvm, clang, and lld source code repositories
+    and checkout the appropriate branch. It would help if 
+    your local repositories were at $HOME/git/hip
     ```console
     mkdir -p $HOME/git/hip
     cd $HOME/git/hip
-    git clone http://github.com/rocm-developer-tools/clang
-    git clone http://github.com/rocm-developer-tools/llvm
-    git clone http://github.com/rocm-developer-tools/lld
+    git clone http://github.com/radeonopencompute/clang
+    git clone http://github.com/radeonopencompute/llvm
+    git clone http://github.com/radeonopencompue/lld
     cd $HOME/git/hip/clang
-    git checkout HIP-180308
+    git checkout amd-hip
     cd $HOME/git/hip/llvm
-    git checkout HIP-180308
+    git checkout amd-common
     cd $HOME/git/hip/lld
-    git checkout HIP-180308
+    git checkout amd-common
     ```
-    You also need the master branch of this repo and the rocm-device-libs.
+    You also need rocm-device-libs and the hip runtime repositories.
     ```console
     git clone http://github.com/radeonopencompute/rocm-device-libs
+    git checkout master
     git clone http://github.com/rocm-developer-tools/hcc2-hip
+    git checkout master
     ```
 4.  Build and install the compiler.
     Smart llvm build and install scripts can be found in the bin directory.
     Run these commands.
     ```console
     cd $HOME/git/hip/hcc2-hip/bin
-    ./build_hip.sh
-    ./build_hip.sh install
+    ./build_amdcommon.sh
+    ./build_amdcommon.sh install
     ```
     The build scripts are customizable with environment variables. For example,
     to install the compiler and components in a location other than the default
@@ -73,8 +68,8 @@ which are mirrors of the repos above.
     export HIP=$HOME/install/hip
     export SUDO=noset
     ```
-    The command "./build_hip.sh help" will give you more information on the 
-    build_hip.sh script. 
+    The command "./build_amdcommon.sh help" will give you more information on the 
+    build_amdcommon.sh script. 
 
 5.  Build and install the rocm-device-libs.
     We recommend not building for all gfx processors, just those you need.
