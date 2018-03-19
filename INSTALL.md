@@ -36,19 +36,19 @@ Use branch amd-hip for clang and branch amd-commmon for llvm and lld.
     cd $HOME/git/hip
     git clone http://github.com/radeonopencompute/clang
     git clone http://github.com/radeonopencompute/llvm
-    git clone http://github.com/radeonopencompue/lld
+    git clone http://github.com/radeonopencompute/lld
+    git clone http://github.com/radeonopencompute/rocm-device-libs
+    git clone http://github.com/rocm-developer-tools/hcc2-hip
+
     cd $HOME/git/hip/clang
     git checkout amd-hip
     cd $HOME/git/hip/llvm
     git checkout amd-common
     cd $HOME/git/hip/lld
     git checkout amd-common
-    ```
-    You also need rocm-device-libs and the hip runtime repositories.
-    ```console
-    git clone http://github.com/radeonopencompute/rocm-device-libs
+    cd $HOME/git/hip/rocm-device-libs
     git checkout master
-    git clone http://github.com/rocm-developer-tools/hcc2-hip
+    cd $HOME/git/hip/hcc2-hip
     git checkout master
     ```
 4.  Build and install the compiler.
