@@ -127,28 +127,28 @@ endmacro()
 
 macro(add_hip_bc_library)
 
-  set(hip_cmd ${LLVM_COMPILER}/bin/clang++ --cuda-device-only -c -emit-llvm -x hip
+  set(hip_cmd ${LLVM_COMPILER}/bin/clang++ --device-only -c -emit-llvm -x hip
     -I${CMAKE_CURRENT_SOURCE_DIR}/../include 
     -I${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-  set(ll_files)
+  set(hip_bc_files)
 
   foreach(file ${hip_sources})
     get_filename_component(fname ${file} NAME_WE)
-    set(ll_filename ${fname}.${mcpu}.ll)
+    set(bc_filename ${fname}.${mcpu}.ll)
     file(GLOB h_files "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
     add_custom_command(
-      OUTPUT ${ll_filename}
-      COMMAND ${hip_cmd} --offload-arch=${mcpu} ${file} -o ${ll_filename}
+      OUTPUT ${bc_filename}
+      COMMAND ${hip_cmd} --offload-arch=${mcpu} ${file} -o ${bc_filename}
       DEPENDS "${file}" ${h_files}
       )
-    list(APPEND ll_files ${ll_filename})
+    list(APPEND hip_bc_files ${bc_filename})
   endforeach()
 
   add_custom_command(
     OUTPUT linkout.hip.${mcpu}.bc
-    COMMAND ${LLVM_COMPILER}/bin/llvm-link ${ll_files} -o linkout.hip.${mcpu}.bc
-    DEPENDS ${ll_files}
+    COMMAND ${LLVM_COMPILER}/bin/llvm-link ${hip_bc_files} -o linkout.hip.${mcpu}.bc
+    DEPENDS ${hip_bc_files}
     )
   list(APPEND bc_files linkout.hip.${mcpu}.bc)
 
