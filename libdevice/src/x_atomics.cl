@@ -9,8 +9,10 @@
 // The companion to this file is atomics.cpp which implements 
 // the overloaded atomic operators for hip. 
 
-#define INLINE __attribute__((always_inline,const)) 
+#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
+#pragma OPENCL EXTENSION cl_khr_int64_extended_atomics : enable
 
+#define INLINE __attribute__((always_inline,const))
 
 // atomicAdd =
 // These are defined in rocm device lib in hc_atomic.ll
@@ -32,6 +34,7 @@
 uint atomic_add_unsigned_global(__global atomic_uint * x, uint y);
 int atomic_add_int_global(__global atomic_int * x, int y);
 float atomic_add_float_global(__global atomic_float * x, float y);
+ulong atomic_add_uint64_global(__global atomic_ulong * x, int y);
 
 // Define functions used used to implement overloaded atomicAdd
 INLINE uint x_atomicAdd_uint(uint * x, uint y) {
@@ -45,6 +48,10 @@ INLINE int x_atomicAdd_int(int * x, int y) {
 INLINE float x_atomicAdd_float(float * x, float y) {
   //define float @atomic_add_float_global(float addrspace(1)* %x, float %y)
   return atomic_add_float_global((__global atomic_float *) x,y);
+}
+INLINE ulong x_atomicAdd_uint64(ulong * x, ulong y) {
+  // define i64 @atomic_add_uint64_global(i64 addrspace(1)* %x, i64 %y)
+  return atomic_add_uint64_global((__global atomic_ulong *) x,y);
 }
 
 
