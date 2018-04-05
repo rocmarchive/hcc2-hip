@@ -34,7 +34,7 @@
 uint atomic_add_unsigned_global(__global atomic_uint * x, uint y);
 int atomic_add_int_global(__global atomic_int * x, int y);
 float atomic_add_float_global(__global atomic_float * x, float y);
-ulong atomic_add_uint64_global(__global atomic_ulong * x, int y);
+ulong atomic_add_uint64_global(__global atomic_ulong * x, ulong y);
 
 // Define functions used used to implement overloaded atomicAdd
 INLINE uint x_atomicAdd_uint(uint * x, uint y) {
