@@ -127,7 +127,7 @@ endmacro()
 
 macro(add_hip_bc_library)
 
-  set(hip_cmd ${LLVM_COMPILER}/bin/clang++ --device-only -c -emit-llvm -x hip
+  set(hip_cmd ${LLVM_COMPILER}/bin/clang++ --device-only -c -emit-llvm -x hip -nocudalib
     -I${CMAKE_CURRENT_SOURCE_DIR}/../include 
     -I${CMAKE_CURRENT_SOURCE_DIR}/src)
 
