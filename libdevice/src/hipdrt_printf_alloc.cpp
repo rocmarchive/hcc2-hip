@@ -48,7 +48,7 @@ typedef struct buffer_header_s buffer_header_t;
 #define OFFSET 8
 
 // We communicate the pointer to the service buffer with this global variable
-extern __device__ long *hip_service_buffer;
+__device__ long *hip_service_buffer;
 
 // hipdrt_alloc_service_buffer:  Allocate device global memory hipdrt_alloc_service_buffer
 INLINE char * hipdrt_alloc_service_buffer(uint bufsz) {
