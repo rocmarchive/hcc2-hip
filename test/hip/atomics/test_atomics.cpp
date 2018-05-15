@@ -28,7 +28,54 @@
 #define N 10
 
 template <typename T>
+struct TypeName
+{
+  static const char* Get()
+  {
+    return typeid(T).name();
+  }
+};
+
+template <>
+struct TypeName<int>
+{
+  static const char* Get()
+  {
+    return "int";
+  }
+};
+
+template <>
+struct TypeName<unsigned>
+{
+  static const char* Get()
+  {
+    return "unsigned";
+  }
+};
+template <>
+struct TypeName<float>
+{
+  static const char* Get()
+  {
+    return "float";
+  }
+};
+
+template <>
+struct TypeName<unsigned long long>
+{
+  static const char* Get()
+  {
+    return "unsigned long long";
+  }
+};
+
+template <typename T>
 struct exchangeOp {
+  static const char* getName() {
+    return "exchangeOp";
+  }
   static __device__ T binop(T* addr, T val) {
     return atomicExchange(addr, val);
   }
@@ -43,16 +90,19 @@ struct compareExchangeOp {
 
 template <typename T>
 struct addOp {
+  static const char* getName() {
+    return "addOp";
+  }
   static __device__ T binop(T* addr, T val) {
     return atomicAdd(addr, val);
   }
 };
 
-__device__ unsigned atomic_sub_unsigned_global(unsigned *addr,
-                                        unsigned val);
-
 template <typename T>
 struct subOp {
+  static const char* getName() {
+    return "subOp";
+  }
   static __device__ T binop(T* addr, T val) {
     return atomicSub(addr, 10);
   }
@@ -60,6 +110,9 @@ struct subOp {
 
 template <typename T>
 struct minOp {
+  static const char* getName() {
+    return "minOp";
+  }
   static __device__ T binop(T* addr, T val) {
     return atomicMin(addr, val);
   }
@@ -67,6 +120,9 @@ struct minOp {
 
 template <typename T>
 struct maxOp {
+  static const char* getName() {
+    return "maxOp";
+  }
   static __device__ T binop(T* addr, T val) {
     return atomicMax(addr, val);
   }
@@ -74,6 +130,9 @@ struct maxOp {
 
 template <typename T>
 struct andOp {
+  static const char* getName() {
+    return "andOp";
+  }
   static __device__ T binop(T* addr, T val) {
     return atomicAnd(addr, val);
   }
@@ -81,6 +140,9 @@ struct andOp {
 
 template <typename T>
 struct orOp {
+  static const char* getName() {
+    return "orOp";
+  }
   static __device__ T binop(T* addr, T val) {
     return atomicOr(addr, val);
   }
@@ -88,6 +150,9 @@ struct orOp {
 
 template <typename T>
 struct xorOp {
+  static const char* getName() {
+    return "xorOp";
+  }
   static __device__ T binop(T* addr, T val) {
     return atomicXor(addr, val);
   }
@@ -164,6 +229,16 @@ template <typename T> void clearVector(T* vector) {
     vector[i] = 0;
 }
 
+template <typename T> bool checkVector(T* vector, T expectedValue) {
+  for (int i = 0; i < N; ++i) {
+    if (vector[i] != expectedValue) {
+      printf("Error: Found %d instread of %d", (int) vector[i], (int)expectedValue);
+      return false;
+    }
+  }
+  return true;
+}
+
 bool hipCallSuccessful(hipError_t error)
 {
   if (error != hipSuccess)
@@ -210,12 +285,6 @@ template <typename T> bool checkResult(T *array, T expected) {
 
 template <typename P, template<typename PP> class T>
 bool hostTestUnOp() {
-  P *array;
-  testUnOp<P, T><<<1,N>>>(array);
-  return checkResult<P>(array, static_cast<P>(42));
-}
-template <typename P, template<typename PP> class T>
-bool hostTestBinOp() {
   P hostSrcVec[N];
   P hostDstVec[N];
 
@@ -240,7 +309,7 @@ bool hostTestBinOp() {
                                   N * sizeof(P), hipMemcpyHostToDevice));
     if (copiedSrcVec)
     {
-      testBinOp<P, T><<<N,1>>>(deviceSrcVec, static_cast<P>(10));
+      testUnOp<P, T><<<N,1>>>(deviceSrcVec);
       if (hipCallSuccessful(hipMemcpy(hostDstVec,
                                       deviceSrcVec,
                                       N * sizeof(int),
@@ -258,10 +327,89 @@ bool hostTestBinOp() {
   return true;
 }
 template <typename P, template<typename PP> class T>
+bool hostTestBinOp(P value, P expectedValue) {
+  P hostSrcVec[N];
+  P hostDstVec[N];
+
+  clearVector<P>(hostSrcVec);
+  clearVector<P>(hostDstVec);
+
+  P *deviceSrcVec = NULL;
+
+  bool vectorAAllocated =
+    hipCallSuccessful(hipMalloc((void **)&deviceSrcVec, N*sizeof(int)));
+
+  if (vectorAAllocated)
+  {
+    bool copiedSrcVec =
+      hipCallSuccessful(hipMemcpy(deviceSrcVec, hostSrcVec,
+                                  N * sizeof(P), hipMemcpyHostToDevice));
+    if (copiedSrcVec)
+    {
+      testBinOp<P, T><<<N,1>>>(deviceSrcVec, value);
+      if (hipCallSuccessful(hipMemcpy(hostDstVec,
+                                      deviceSrcVec,
+                                      N * sizeof(int),
+                                      hipMemcpyDeviceToHost))) {
+        printf("Test: %s<%s>: ", T<P>::getName(), TypeName<P>::Get());
+        if (!checkVector<P>(hostDstVec, expectedValue)) {
+        } else {
+          printf("Pass!");
+        }
+        printf("\n");
+      }
+    }
+  }
+
+  if (vectorAAllocated)
+    hipFree(deviceSrcVec);
+
+  return true;
+}
+template <typename P, template<typename PP> class T>
 bool hostTestTernOp() {
-  P *array;
-  testTernOp<P, T><<<N,1>>>(array, static_cast<P>(10),static_cast<P>(10));
-  return checkResult<P>(array,static_cast<P>(42));
+  P hostSrcVec[N];
+  P hostDstVec[N];
+
+  clearVector<P>(hostSrcVec);
+  clearVector<P>(hostDstVec);
+
+  P *deviceSrcVec = NULL;
+
+  printf("  Src: ");
+  printVector<P>(hostSrcVec);
+  printf("\n  Dst: ");
+  printVector<P>(hostDstVec);
+  printf("\n");
+
+  bool vectorAAllocated =
+    hipCallSuccessful(hipMalloc((void **)&deviceSrcVec, N*sizeof(int)));
+
+  if (vectorAAllocated)
+  {
+    bool copiedSrcVec =
+      hipCallSuccessful(hipMemcpy(deviceSrcVec, hostSrcVec,
+                                  N * sizeof(P), hipMemcpyHostToDevice));
+    if (copiedSrcVec)
+    {
+      testTernOp<P, T><<<N,1>>>(deviceSrcVec,
+                               static_cast<P>(10),
+                               static_cast<P>(10));
+      if (hipCallSuccessful(hipMemcpy(hostDstVec,
+                                      deviceSrcVec,
+                                      N * sizeof(int),
+                                      hipMemcpyDeviceToHost))) {
+        printf("Dst: ");
+        printVector<P>(hostDstVec);
+        printf("\n");
+      }
+    }
+  }
+
+  if (vectorAAllocated)
+    hipFree(deviceSrcVec);
+
+  return true;
 }
 
 int main() {
@@ -271,47 +419,47 @@ int main() {
     return 0;
   }
 
-  hostTestBinOp<unsigned, addOp>();
-  hostTestBinOp<int, addOp>();
-  hostTestBinOp<float, addOp>();
-  hostTestBinOp<unsigned long long, addOp>();
+  hostTestBinOp<unsigned, addOp>(10, 100);
+  hostTestBinOp<int, addOp>(10, 100);
+  hostTestBinOp<float, addOp>(10.0, 100.0);
+  hostTestBinOp<unsigned long long, addOp>(10, 100);
 
   //  hostTestTernOp<unsigned, compareExchangeOp>();
   //  hostTestTernOp<int, compareExchangeOp>();
   //  hostTestTernOp<unsigned long long, compareExchangeOp>();
 
-  hostTestBinOp<int, subOp>();
-  hostTestBinOp<unsigned, subOp>();
+  hostTestBinOp<int, subOp>(10, -100);
+  hostTestBinOp<unsigned, subOp>(10, -100);
 
-  //  hostTestBinOp<int, exchangeOp>();
-  //  hostTestBinOp<unsigned, exchangeOp>();
-  //  hostTestBinOp<float, exchangeOp>();
-  //  hostTestBinOp<unsigned long long, exchangeOp>();
+  //  //  hostTestBinOp<int, exchangeOp>();
+  //  //  hostTestBinOp<unsigned, exchangeOp>();
+  //  //  hostTestBinOp<float, exchangeOp>();
+  //  //  hostTestBinOp<unsigned long long, exchangeOp>();
 
-  hostTestBinOp<int, minOp>();
-  hostTestBinOp<unsigned, minOp>();
-  hostTestBinOp<unsigned long long, minOp>();
+  hostTestBinOp<int, minOp>(-10, -10);
+  hostTestBinOp<unsigned, minOp>(10, 0);
+  hostTestBinOp<unsigned long long, minOp>(10, 0);
 
-  hostTestBinOp<int, maxOp>();
-  hostTestBinOp<unsigned, maxOp>();
-  hostTestBinOp<unsigned long long, maxOp>();
+  hostTestBinOp<int, maxOp>(10, 10);
+  hostTestBinOp<unsigned, maxOp>(10, 10);
+  hostTestBinOp<unsigned long long, maxOp>(10, 10);
 
-  hostTestBinOp<int, andOp>();
-  hostTestBinOp<unsigned, andOp>();
-  hostTestBinOp<unsigned long long, andOp>();
+  hostTestBinOp<int, andOp>(1, 0);
+  hostTestBinOp<unsigned, andOp>(1, 0);
+  hostTestBinOp<unsigned long long, andOp>(1, 0);
 
-  hostTestBinOp<int, orOp>();
-  hostTestBinOp<unsigned, orOp>();
-  hostTestBinOp<unsigned long long, orOp>();
+  hostTestBinOp<int, orOp>(1,1);
+  hostTestBinOp<unsigned, orOp>(1,1);
+  hostTestBinOp<unsigned long long, orOp>(1,1);
 
-  hostTestBinOp<int, xorOp>();
-  hostTestBinOp<unsigned, xorOp>();
-  hostTestBinOp<unsigned long long, xorOp>();
+  hostTestBinOp<int, xorOp>(1,1);
+  hostTestBinOp<unsigned, xorOp>(1,1);
+  hostTestBinOp<unsigned long long, xorOp>(1,1);
 
-  //  hostTestUnOp<unsigned, incOp>();
-  //  hostTestUnOp<int, incOp>();
-  //  hostTestUnOp<unsigned, decOp>();
-  //  hostTestUnOp<int, decOp>();
+  //  //  hostTestUnOp<unsigned, incOp>();
+  //  //  hostTestUnOp<int, incOp>();
+  //  //  hostTestUnOp<unsigned, decOp>();
+  //  //  hostTestUnOp<int, decOp>();
 
   return 0;
 }
