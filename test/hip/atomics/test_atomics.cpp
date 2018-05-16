@@ -224,15 +224,19 @@ void randomizeVector(int *vector)
     vector[i] = rand() % 10;
 }
 
+template <typename T> void setVector(T* vector, T value) {
+   for (int i = 0; i < N; ++i)
+     vector[i] = value;
+}
+
 template <typename T> void clearVector(T* vector) {
-  for (int i = 0; i < N; ++i)
-    vector[i] = 0;
+  setVector<T>(vector, 0);
 }
 
 template <typename T> bool checkVector(T* vector, T expectedValue) {
   for (int i = 0; i < N; ++i) {
     if (vector[i] != expectedValue) {
-      printf("Error: Found %d instread of %d", (int) vector[i], (int)expectedValue);
+      printf("Error: Found %d instread of %d\n", (int) vector[i], (int)expectedValue);
       return false;
     }
   }
@@ -327,11 +331,11 @@ bool hostTestUnOp() {
   return true;
 }
 template <typename P, template<typename PP> class T>
-bool hostTestBinOp(P value, P expectedValue) {
+bool hostTestBinOp(P vectorValue, P value, P expectedValue) {
   P hostSrcVec[N];
   P hostDstVec[N];
 
-  clearVector<P>(hostSrcVec);
+  setVector<P>(hostSrcVec, vectorValue);
   clearVector<P>(hostDstVec);
 
   P *deviceSrcVec = NULL;
@@ -349,10 +353,14 @@ bool hostTestBinOp(P value, P expectedValue) {
       testBinOp<P, T><<<N,1>>>(deviceSrcVec, value);
       if (hipCallSuccessful(hipMemcpy(hostDstVec,
                                       deviceSrcVec,
-                                      N * sizeof(int),
+                                      N * sizeof(P),
                                       hipMemcpyDeviceToHost))) {
         printf("Test: %s<%s>: ", T<P>::getName(), TypeName<P>::Get());
         if (!checkVector<P>(hostDstVec, expectedValue)) {
+          printf("Dst: ");
+          printVector<P>(hostDstVec);
+          printf("\n");
+
         } else {
           printf("Pass!");
         }
@@ -419,42 +427,42 @@ int main() {
     return 0;
   }
 
-  hostTestBinOp<unsigned, addOp>(10, 100);
-  hostTestBinOp<int, addOp>(10, 100);
-  hostTestBinOp<float, addOp>(10.0, 100.0);
-  hostTestBinOp<unsigned long long, addOp>(10, 100);
+  hostTestBinOp<unsigned, addOp>(0, 10, 100);
+  hostTestBinOp<int, addOp>(0, 10, 100);
+  hostTestBinOp<float, addOp>(0, 10.0, 100.0);
+  hostTestBinOp<unsigned long long, addOp>(10, 10, 110);
 
   //  hostTestTernOp<unsigned, compareExchangeOp>();
   //  hostTestTernOp<int, compareExchangeOp>();
   //  hostTestTernOp<unsigned long long, compareExchangeOp>();
 
-  hostTestBinOp<int, subOp>(10, -100);
-  hostTestBinOp<unsigned, subOp>(10, -100);
+  hostTestBinOp<int, subOp>(0, 10, -100);
+  hostTestBinOp<unsigned, subOp>(0, 10, -100);
 
   //  //  hostTestBinOp<int, exchangeOp>();
   //  //  hostTestBinOp<unsigned, exchangeOp>();
   //  //  hostTestBinOp<float, exchangeOp>();
   //  //  hostTestBinOp<unsigned long long, exchangeOp>();
 
-  hostTestBinOp<int, minOp>(-10, -10);
-  hostTestBinOp<unsigned, minOp>(10, 0);
-  hostTestBinOp<unsigned long long, minOp>(10, 0);
+  hostTestBinOp<int, minOp>(0, -10, -10);
+  hostTestBinOp<unsigned, minOp>(0, 10, 0);
+  hostTestBinOp<unsigned long long, minOp>(0, 10, 0);
 
-  hostTestBinOp<int, maxOp>(10, 10);
-  hostTestBinOp<unsigned, maxOp>(10, 10);
-  hostTestBinOp<unsigned long long, maxOp>(10, 10);
+  hostTestBinOp<int, maxOp>(0, 10, 10);
+  hostTestBinOp<unsigned, maxOp>(0, 10, 10);
+  hostTestBinOp<unsigned long long, maxOp>(0, 10, 10);
 
-  hostTestBinOp<int, andOp>(1, 0);
-  hostTestBinOp<unsigned, andOp>(1, 0);
-  hostTestBinOp<unsigned long long, andOp>(1, 0);
+  hostTestBinOp<int, andOp>(1, 1, 1);
+  hostTestBinOp<unsigned, andOp>(0, 1, 0);
+  hostTestBinOp<unsigned long long, andOp>(1, 1, 1);
 
-  hostTestBinOp<int, orOp>(1,1);
-  hostTestBinOp<unsigned, orOp>(1,1);
-  hostTestBinOp<unsigned long long, orOp>(1,1);
+  hostTestBinOp<int, orOp>(0, 1, 1);
+  hostTestBinOp<unsigned, orOp>(1, 0, 1);
+  hostTestBinOp<unsigned long long, orOp>(1, 1, 1);
 
-  hostTestBinOp<int, xorOp>(1,1);
-  hostTestBinOp<unsigned, xorOp>(1,1);
-  hostTestBinOp<unsigned long long, xorOp>(1,1);
+  hostTestBinOp<int, xorOp>(0, 1, 0);
+  hostTestBinOp<unsigned, xorOp>(0, 1, 0);
+  hostTestBinOp<unsigned long long, xorOp>(0, 1, 0);
 
   //  //  hostTestUnOp<unsigned, incOp>();
   //  //  hostTestUnOp<int, incOp>();
