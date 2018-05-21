@@ -122,17 +122,8 @@ include_directories(
 
   install(DIRECTORY include/hip DESTINATION lib/clang/7.0.0/include
     FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp")
-
-  # temporarily create prepare-builtins binary till it becomes part of the LLVM install
-  find_package(LLVM REQUIRED CONFIG PATHS ${CMAKE_INSTALL_PREFIX} NO_DEFAULT_PATH)
-  list(APPEND CMAKE_MODULE_PATH ${LLVM_CMAKE_DIR})
-  include(AddLLVM)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-rtti")
-  add_definitions(${LLVM_DEFINITIONS})
-  include_directories(${LLVM_INCLUDE_DIR})
-  add_executable(prepare-builtins ${CMAKE_CURRENT_SOURCE_DIR}/lib/src/prepare-builtins.cpp)
-  llvm_map_components_to_libnames(llvm_libs support core bitreader bitwriter)
-  target_link_libraries(prepare-builtins ${llvm_libs})
+  install(DIRECTORY include/hip2 DESTINATION lib/clang/7.0.0/include
+    FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp")
 
   # Add tests. (no tests yet)
   # add_subdirectory(test)
