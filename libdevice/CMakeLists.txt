@@ -35,8 +35,7 @@ project(${libname})
 
 # mcpus is a list of all gfx processors to build an optimized library for 
 set(mcpus $ENV{GFXLIST})
-if(mcpus)
-else()
+if(NOT mcpus)
   set(mcpus gfx700 gfx701 gfx801 gfx803 gfx900)
 endif()
 
@@ -44,52 +43,13 @@ separate_arguments(mcpus)
 
 message("---> Building lib${libname} for gfx processors: ${mcpus}")
 
-#optimization level
-set(optimization_level 2)
+file(GLOB h_files "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
+file(GLOB ll_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/*.ll")
+file(GLOB hip_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+file(GLOB ocl_sources "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cl")
 
-# for both in-tree and out-of-tree build
-if (CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
-  set(OUTPUTDIR ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY})
-else()
-  set(OUTPUTDIR ${CMAKE_CURRENT_BINARY_DIR})
-endif()
-
-# get all the source files to compile 
-file(GLOB sources
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cu
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cl
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
-  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.ll)
-
-###############################################################################
-# Macros to create bc library from ll, cu, cl, or cpp
-###############################################################################
-macro(add_ll_bc_library)
-  set(llbc_files)
-
-  foreach(file ${ll_sources})
-    get_filename_component(fname ${file} NAME_WE)
-    set(llbc_file ${fname}.${mcpu}.bc)
-    add_custom_command(
-      OUTPUT ${llbc_file}
-      COMMAND ${LLVM_COMPILER}/bin/llvm-as ${file} -o ${llbc_file}
-      DEPENDS "${file}" 
-    )
-    list(APPEND llbc_files ${llbc_file})
-  endforeach()
-
-  add_custom_command(
-    OUTPUT linkout.llfiles.${mcpu}.bc
-    COMMAND ${LLVM_COMPILER}/bin/llvm-link ${llbc_files} -o linkout.llfiles.${mcpu}.bc
-    DEPENDS ${llbc_files}
-  )
-  list(APPEND bc_files linkout.llfiles.${mcpu}.bc)
-
-endmacro()
-
-macro(add_ocl_bc_library)
-
-  set(cl_cmd ${LLVM_COMPILER}/bin/clang
+#  OpenCL files are no longer gfx specific, so only build them one time
+set(cl_cmd ${LLVM_COMPILER}/bin/clang
     -S -emit-llvm
     -DCL_VERSION_2_0=200 -D__OPENCL_C_VERSION__=200
     -Dcl_khr_fp64 -Dcl_khr_fp16
@@ -101,149 +61,54 @@ macro(add_ocl_bc_library)
     -I${ROCDL_INC_IRIF}
     -I${CMAKE_CURRENT_SOURCE_DIR}/src
     -I${LLVM_COMPILER}/include)
-
-  set(ll_files)
-
-  foreach(file ${ocl_sources})
-    get_filename_component(fname ${file} NAME_WE)
-    set(ll_filename ${fname}.${mcpu}.ll)
-    file(GLOB h_files "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
-    add_custom_command(
-      OUTPUT ${ll_filename}
-      COMMAND ${cl_cmd} ${file} -o ${ll_filename} 
-      DEPENDS "${file}" ${h_files}
-      )
-    list(APPEND ll_files ${ll_filename})
-  endforeach()
-
+set(cl_ll_files)
+foreach(file ${ocl_sources})
+  file(RELATIVE_PATH rfile ${CMAKE_CURRENT_SOURCE_DIR}/src ${file})
+  get_filename_component(fname ${rfile} NAME_WE)
+  set(ll_filename ${fname}.ll)
   add_custom_command(
-    OUTPUT linkout.ocl.${mcpu}.bc
-    COMMAND ${LLVM_COMPILER}/bin/llvm-link ${ll_files} -o linkout.ocl.${mcpu}.bc
-    DEPENDS ${ll_files}
-    )
-  list(APPEND bc_files linkout.ocl.${mcpu}.bc)
-
-endmacro()
-
-macro(add_hip_bc_library)
-
-  set(hip_cmd ${LLVM_COMPILER}/bin/clang++ --device-only -c -emit-llvm -x hip -nocudalib
-    -I${CMAKE_CURRENT_SOURCE_DIR}/../include 
-    -I${CMAKE_CURRENT_SOURCE_DIR}/src)
-
-  set(hip_bc_files)
-
-  foreach(file ${hip_sources})
-    get_filename_component(fname ${file} NAME_WE)
-    set(bc_filename ${fname}.${mcpu}.ll)
-    file(GLOB h_files "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
-    add_custom_command(
-      OUTPUT ${bc_filename}
-      COMMAND ${hip_cmd} --offload-arch=${mcpu} ${file} -o ${bc_filename}
-      DEPENDS "${file}" ${h_files}
-      )
-    list(APPEND hip_bc_files ${bc_filename})
-  endforeach()
-
-  add_custom_command(
-    OUTPUT linkout.hip.${mcpu}.bc
-    COMMAND ${LLVM_COMPILER}/bin/llvm-link ${hip_bc_files} -o linkout.hip.${mcpu}.bc
-    DEPENDS ${hip_bc_files}
-    )
-  list(APPEND bc_files linkout.hip.${mcpu}.bc)
-
-endmacro()
-
-
-macro(add_cuda_bc_library)
-
-  set(cu_cmd ${LLVM_COMPILER}/bin/clang++
-    -S -emit-llvm
-    --cuda-device-only
-    -nocudalib
-    --cuda-gpu-arch=${mcpu}
-    ${CUDA_DEBUG}
-    -I${CMAKE_CURRENT_SOURCE_DIR}/src)
-
-  set(ll_files)
-
-  foreach(file ${cuda_sources})
-    get_filename_component(fname ${file} NAME_WE)
-    set(ll_filename ${fname}.${mcpu}.ll)
-    file(GLOB h_files "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
-    add_custom_command(
-      OUTPUT ${ll_filename}
-      COMMAND ${cu_cmd} ${file} -o ${ll_filename}
-      DEPENDS "${file}" ${h_files}
-      )
-    list(APPEND ll_files ${ll_filename})
-  endforeach()
-
-  add_custom_command(
-    OUTPUT linkout.cuda.${mcpu}.bc
-    COMMAND ${LLVM_COMPILER}/bin/llvm-link ${ll_files} -o linkout.cuda.${mcpu}.bc
-    DEPENDS ${ll_files}
-    )
-  list(APPEND bc_files linkout.cuda.${mcpu}.bc)
-
-endmacro()
-###############################################################################
-
-set(cuda_sources)
-set(ocl_sources)
-set(ll_sources)
-set(hip_sources)
-
-foreach(file ${sources})
-  get_filename_component(fext ${file} EXT)
-  if (fext STREQUAL ".cu")
-    list(APPEND cuda_sources ${file})
-  endif()
-  if (fext STREQUAL ".cl")
-    list(APPEND ocl_sources ${file})
-  endif()
-  if (fext STREQUAL ".ll")
-    list(APPEND ll_sources ${file})
-  endif()
-  if (fext STREQUAL ".cpp")
-    list(APPEND hip_sources ${file})
-  endif()
+    OUTPUT ${ll_filename}
+    COMMAND ${cl_cmd} ${file} -o ${ll_filename} 
+    DEPENDS ${file})
+  list(APPEND cl_ll_files ${ll_filename})
 endforeach()
 
 foreach(mcpu ${mcpus})
-  set(final_bc_filename lib${libname}-${mcpu}.bc)
 
-  # Each of these macros will append one bc file to bc_files
-  set(bc_files)
-  if (ll_sources)
-    add_ll_bc_library()
-  endif()
-  if (ocl_sources)
-    add_ocl_bc_library()
-  endif()
-  if (cuda_sources)
-    add_cuda_bc_library()
-  endif()
-  if (hip_sources)
-    add_hip_bc_library()
-  endif()
+  set(hip_cmd ${LLVM_COMPILER}/bin/clang++ -x hip --offload-arch=${mcpu} -c -S -emit-llvm -O2 -nocudalib
+    -I${CMAKE_CURRENT_SOURCE_DIR}/../include 
+    -I${CMAKE_CURRENT_SOURCE_DIR}/src)
+  set(hip_ll_files)
+  foreach(file ${hip_sources})
+    file(RELATIVE_PATH rfile ${CMAKE_CURRENT_SOURCE_DIR}/src ${file})
+    get_filename_component(fname ${rfile} NAME_WE)
+#   FIXME after we get better file name for device ll
+    set(ll_filename ${fname}-cuda-nvptx64-nvidia-cuda-${mcpu}.ll)
+    add_custom_command(
+      OUTPUT ${ll_filename}
+      COMMAND ${hip_cmd} ${file} 
+      DEPENDS ${file})
+    list(APPEND hip_ll_files ${ll_filename})
+  endforeach()
 
   add_custom_command(
     OUTPUT linkout.${mcpu}.bc
-    COMMAND ${LLVM_COMPILER}/bin/llvm-link ${bc_files} -o linkout.${mcpu}.bc
-    DEPENDS ${bc_files}
-    )
-  add_custom_command(
-    OUTPUT optout.${mcpu}.bc
-    COMMAND ${LLVM_COMPILER}/bin/opt -O${optimization_level} linkout.${mcpu}.bc -o optout.${mcpu}.bc
-    DEPENDS linkout.${mcpu}.bc
-    )
+    COMMAND ${LLVM_COMPILER}/bin/llvm-link ${cl_ll_files} ${hip_ll_files} ${ll_sources} -o linkout.${mcpu}.bc
+    DEPENDS ${cl_ll_files} ${hip_ll_files} ${ll_sources})
+  add_custom_target(linkout-${mcpu}-bc  ALL DEPENDS linkout.${mcpu}.bc)
+
+  set(final_bc_filename lib${libname}-${mcpu}.bc)
   add_custom_command(
     OUTPUT ${final_bc_filename}
-    COMMAND ${CMAKE_CURRENT_BINARY_DIR}/../prepare-builtins optout.${mcpu}.bc -o ${OUTPUTDIR}/${final_bc_filename}
-    DEPENDS optout.${mcpu}.bc prepare-builtins
-    )
+    COMMAND ${LLVM_COMPILER}/bin/prepare-builtins linkout.${mcpu}.bc -o ${final_bc_filename}
+    DEPENDS linkout.${mcpu}.bc )
   add_custom_target(lib${libname}-${mcpu} ALL DEPENDS ${final_bc_filename})
+
+  if (NOT CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
+    set(OUTPUTDIR ${CMAKE_CURRENT_BINARY_DIR})
+  else()
+    set(OUTPUTDIR ${CMAKE_ARCHIVE_OUTPUT_DIRECTORY})
+  endif()
 
   if(CMAKE_BUILD_TYPE MATCHES Debug)
     install(FILES ${OUTPUTDIR}/${final_bc_filename} DESTINATION "lib-debug/libdevice/${mcpu}"
