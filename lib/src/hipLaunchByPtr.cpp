@@ -54,7 +54,6 @@
 #define __HIP__
 #define __host__
 #define __device__
-#include <vector>
 #include <hip/hip_runtime_api.h>
 
 #include "hipLaunchByPtr.h"
@@ -169,29 +168,33 @@ extern "C" hipError_t hipi_Launch(
   dim3  gridDim  = ldata->gridDim;
   dim3  blockDim = ldata->blockDim;
   const char* kernelName = kernel->kernel_name;
+  size_t argstruct_size = ldata->argstructsize; // Note: This
+                                                // parameter seems to
+                                                // be igonred, using
+                                                // other values makes
+                                                // no difference.
 
-  // Setup the "extras" method to call hipModuleLaunchKernel
-  std::vector<void*>argBuffer(ldata->argnum+1);
-  for (int i=0 ; i<ldata->argnum ; i++)
-    memcpy(&argBuffer[i],&(ldata->kernargs[i]),sizeof(void*));
-  size_t size = argBuffer.size()*sizeof(void*);
-  volatile void *config[] = {
-    HIP_LAUNCH_PARAM_BUFFER_POINTER, &argBuffer[0],
-    HIP_LAUNCH_PARAM_BUFFER_SIZE, &size,
-    HIP_LAUNCH_PARAM_END
-  };
+  void *thisargstruct = calloc(1, argstruct_size);
+  memcpy(thisargstruct, &(ldata->argstruct), argstruct_size);
+  volatile void *config[] = {HIP_LAUNCH_PARAM_BUFFER_POINTER, thisargstruct,
+                             HIP_LAUNCH_PARAM_BUFFER_SIZE, &argstruct_size,
+                             HIP_LAUNCH_PARAM_END};
 
   hipFunction_t function;
   hipError_t hip_error = hipModuleGetFunction(&function, global->hip_module, kernel->kernel_name);
   ErrorCheckHIP("GetFunction", hip_error);
   DEBUG(hipi_dbgs() << "LAUNCHING KERNEL: "  << kernel->kernel_name << "\n");
   DEBUG(hipi_dbgs() << "        Function: "  << function << "\n");
-  DEBUG(hipi_dbgs() << "  Arguments size: "  << size << "\n");
   DEBUG(hipi_dbgs() << "            GRID: (" << gridDim.x << ", "
          <<  gridDim.y << ", " << gridDim.z << ") \n");
   DEBUG(hipi_dbgs() << "           BLOCK: (" << blockDim.x << ", "
          <<  blockDim.y << ", " << blockDim.z << ") \n");
-  DEBUG(hipi_dbgs() << "  Arg struct ptr: " << std::hex << &argBuffer[0] << "\n ");
+  DEBUG(hipi_dbgs() << "  Arguments size: " << argstruct_size << "\n");
+  DEBUG(hipi_dbgs() << "  Arg struct ptr: " << std::hex << thisargstruct
+                    << "\n ");
+
+  DEBUG(hipi_dbgs() << "BLOCK(" << blockDim.x << ", " << blockDim.y << ", "
+                    << blockDim.z << "\n");
 
   int gridX = gridDim.x;
   int gridY = gridDim.y;
@@ -211,7 +214,9 @@ extern "C" hipError_t hipi_Launch(
     (void**)config);
   ErrorCheckHIP("hipModuleLaunchKernel", rc);
   hipDeviceSynchronize();
-  DEBUG(hipi_dbgs() << " KERNEL and hipDeviceSynchronize COMPLETED: " << kernel->kernel_name << "\n");
+  free(thisargstruct);
+  DEBUG(hipi_dbgs() << " KERNEL & hipDeviceSynchronize COMPLETE: "
+                    << kernel->kernel_name << "\n");
   return rc;
 }
 
@@ -380,10 +385,10 @@ extern "C" EXPORT void __hipRegisterFunction(
   hipi_Kernels[KID].gDim          = gDim;
   hipi_Kernels[KID].wSize         = wSize;
 
-  DEBUG(hipi_dbgs() << "\n==>DEBUG: __hipRegisterFunction \n   host_name: " <<
-        host_name << "\n kernel_name: " << kernel_name << "\n");
-  DEBUG(hipi_dbgs() << " thread limit:" << thread_limit << "\n KernelId: " << KID <<
-        "\n khaddr: " << khaddr << "\n wSize: "<< wSize << "\n");
+  DEBUG(hipi_dbgs() << "\n==>DEBUG: __hipRegisterFunction \n   host_name: "
+                    << host_name << "\nkernel_name: " << kernel_name << "\n");
+  DEBUG(hipi_dbgs() << "   tl:" << thread_limit << "KernelId: " << KID
+                    << "khaddr: " << khaddr << "wSize: " << wSize << "\n");
 
   hipi_err_t rc = hipi_RegisterKernel(hipi_Global, &hipi_Kernels[KID]);
 
@@ -404,8 +409,7 @@ extern "C" EXPORT hipError_t hipConfigureCall(
   hipi_Ldata->blockDim = blockDim;
   hipi_Ldata->smsize   = smsize;
   hipi_Ldata->stream   = stream;
-  hipi_Ldata->argnum = 0;
-  hipi_Ldata->kernargs[0] = NULL;
+  hipi_Ldata->argstructsize = 0;
 
   DEBUG(hipi_dbgs() << "\n==>DEBUG: hipConfigureCall called size=" << smsize <<
         " stream: " <<  stream << "\n");
@@ -424,31 +428,21 @@ extern "C" EXPORT hipError_t hipSetupArgument(
   unsigned long long * arg,
   unsigned long long size,
   unsigned long long offset) {
-  // If the first argument is a pointer to kernel, we ignore it to build
-  // the real kernel args. For now, we only check if the size is 1
-  if (( size == (unsigned long long) 1) && (hipi_Ldata->argnum == 0)) {
-    DEBUG(hipi_dbgs() << "==>DEBUG:    hipSetupArgument IGNORING FIRST ARG: " << arg << " value: "
-          << *arg << " (0x" << std::hex << *arg << std::dec << ") with size " << size
-          << " off: " << offset << "\n");
-  } else {
-
-    if (hipi_Ldata->argnum + 1 > HIP_MAX_KERNARGS)  {
-       return hipErrorLaunchOutOfResources;
-    }
-    //  To get device pointers aligned, we must align, so even
-    //  4 byte scalar values reserve an 8 byte pointer.  This is
-    //  why int kernel args are extended to i64 in kernel args.
-    memcpy(&(hipi_Ldata->kernargs[hipi_Ldata->argnum]),arg,size);
-    hipi_Ldata->argnum++;
+  if (size != (unsigned long long)1) {
+    memcpy((hipi_Ldata->argstruct + hipi_Ldata->argstructsize), arg, size);
+    hipi_Ldata->argstructsize += size;
 
     if ( size == 4 ) {
       unsigned value = (unsigned) *arg;
-      DEBUG(hipi_dbgs() << "==>DEBUG:    hipSetupArgument arg: " << arg <<
-          " value: " << value << " (0x" << std::hex << value << std::dec << ") with size " << size << "\n");
-    } else {
-      DEBUG(hipi_dbgs() << "==>DEBUG:    hipSetupArgument arg: " << arg << " value: "
-          << *arg << " (0x" << std::hex << *arg << std::dec << ") with size " << size  << "\n");
-    }
+      DEBUG(hipi_dbgs() << "==>DEBUG:    hipSetupArgument arg: " << arg
+                        << " value: " << value << " (0x" << std::hex << value
+                        << std::dec << ") with size " << size
+                        << " off: " << offset << "\n");
+    } else
+      DEBUG(hipi_dbgs() << "==>DEBUG:    hipSetupArgument arg: " << arg
+                        << " value: " << *arg << " (0x" << std::hex << *arg
+                        << std::dec << ") with size " << size
+                        << " off: " << offset << "\n");
   }
   return hipSuccess;
 }
@@ -469,9 +463,9 @@ extern "C" EXPORT hipError_t hipLaunchByPtr(long long * khaddr){
   for (i = 0 ; i<hipi_Global->kernel_count ; i++)
     if( hipi_Kernels[i].khaddr == khaddr) KID=i;
 
-  DEBUG(hipi_dbgs() << "==>DEBUG:    hipLaunchByPtr for\n Name:  " <<
-        hipi_Kernels[KID].kernel_name << "\n Kernel number: " <<
-        KID << "\n  khaddr: " << khaddr << "\n");
+  DEBUG(hipi_dbgs() << "==>DEBUG:    hipLaunchByPtr for "
+                    << hipi_Kernels[KID].kernel_name << " kernel number: "
+                    << KID << " khaddr: " << khaddr << "\n");
 
   return hipi_Launch(hipi_Global, &hipi_Kernels[KID], hipi_Ldata);
 }

@@ -99,7 +99,7 @@ extern int HIP_TRACE_API;
 
 #endif /* Device feature flags */
 
-static constexpr int warpSize = 64;
+static const int warpSize = 64;
 
 #define clock_t long long int
 __device__ long long int clock64();

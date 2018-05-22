@@ -62,8 +62,8 @@ struct hipi_launchdata_s{
   dim3                    gridDim;
   long long                smsize;
   hipStream_t           * stream;
-  int                     argnum;
-  void*                   kernargs[HIP_MAX_KERNARGS];
+  unsigned int argstructsize;
+  char argstruct[HIP_MAXARGSTRUCTSZ];
 };
 typedef struct hipi_launchdata_s hipi_launchdata_t;
 
