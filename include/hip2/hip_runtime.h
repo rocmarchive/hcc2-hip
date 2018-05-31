@@ -361,7 +361,7 @@ static inline hipError_t hipHostMalloc( T** ptr, size_t size, unsigned int flags
 #include "hip_texture_functions.h"
 #endif
 
-#include "hip_device_functions.h"
+//#include "hip_device_functions.h"
 
 #define HIP_LAUNCH_PARAM_BUFFER_POINTER ((void*) 0x01)
 #define HIP_LAUNCH_PARAM_BUFFER_SIZE    ((void*) 0x02)
