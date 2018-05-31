@@ -7,9 +7,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-// The companion to this file is x_atomics.cl which defines the non overloaded
-// functions used below.
-
 #include "hip/hip_runtime.h"
 #include "atomics.h"
 
@@ -18,18 +15,20 @@
 
 // atomicAdd()
 // ------ support for overloaded atomicAdd ------
-__device__ __OVERL__ unsigned atomicAdd(unsigned *address,
+__OVERL__ unsigned atomicAdd(unsigned *address,
                                         unsigned val) {
   return atomic_add_unsigned(address, val);
 }
 
-__device__ __OVERL__ int atomicAdd(int *address, int val) {
+__OVERL__ int atomicAdd(int *address, int val) {
   return atomic_add_int(address, val);
 }
-__device__ __OVERL__ float atomicAdd(float *address, float val) {
+
+__OVERL__ float atomicAdd(float *address, float val) {
   return atomic_add_float(address, val);
 }
-__device__ __OVERL__ unsigned long long
+
+__OVERL__ unsigned long long
 atomicAdd(unsigned long long *address, unsigned long long val) {
   return atomic_add_uint64(address, val);
 }
