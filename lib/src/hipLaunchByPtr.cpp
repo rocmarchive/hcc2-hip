@@ -165,8 +165,8 @@ extern "C" hipError_t hipi_Launch(
   hipi_kernel_t     * kernel,
   hipi_launchdata_t * ldata
 ) {
-  dim3  gridDim  = ldata->gridDim;
-  dim3  blockDim = ldata->blockDim;
+  //dim3  gridDim  = ldata->gridDim;
+  //dim3  blockDim = ldata->blockDim;
   const char* kernelName = kernel->kernel_name;
   size_t argstruct_size = ldata->argstructsize; // Note: This
                                                 // parameter seems to
@@ -185,29 +185,24 @@ extern "C" hipError_t hipi_Launch(
   ErrorCheckHIP("GetFunction", hip_error);
   DEBUG(hipi_dbgs() << "LAUNCHING KERNEL: "  << kernel->kernel_name << "\n");
   DEBUG(hipi_dbgs() << "        Function: "  << function << "\n");
-  DEBUG(hipi_dbgs() << "            GRID: (" << gridDim.x << ", "
-         <<  gridDim.y << ", " << gridDim.z << ") \n");
-  DEBUG(hipi_dbgs() << "           BLOCK: (" << blockDim.x << ", "
-         <<  blockDim.y << ", " << blockDim.z << ") \n");
+  DEBUG(hipi_dbgs() << "            GRID: (" << ldata->gridDim.x << ", "
+         <<  ldata->gridDim.y << ", " << ldata->gridDim.z << ") \n");
+  DEBUG(hipi_dbgs() << "           BLOCK: (" << ldata->blockDim.x << ", "
+         <<  ldata->blockDim.y << ", " << ldata->blockDim.z << ") \n");
   DEBUG(hipi_dbgs() << "  Arguments size: " << argstruct_size << "\n");
-  DEBUG(hipi_dbgs() << "  Arg struct ptr: " << std::hex << thisargstruct
-                    << "\n ");
+  DEBUG(hipi_dbgs() << "  Arg struct ptr: " << std::hex << thisargstruct << "\n ");
 
-  DEBUG(hipi_dbgs() << "BLOCK(" << blockDim.x << ", " << blockDim.y << ", "
-                    << blockDim.z << "\n");
-
-  int gridX = gridDim.x;
-  int gridY = gridDim.y;
-  int gridZ = gridDim.z;
+  unsigned int gridX = ldata->gridDim.x;
+  unsigned int gridY = ldata->gridDim.y;
+  unsigned int gridZ = ldata->gridDim.z;
+  unsigned int blockX = ldata->blockDim.x;
+  unsigned int blockY = ldata->blockDim.y;
+  unsigned int blockZ = ldata->blockDim.z;
 
   hipError_t rc = hipModuleLaunchKernel(
     function,
-    gridX,
-    gridY,
-    gridZ,
-    blockDim.x,
-    blockDim.y,
-    blockDim.z,
+    gridX, gridY, gridZ,
+    blockX,blockY,blockZ,
     ldata->smsize,
     0, // Use default stream for now
     NULL, // kernelParams Not implemented in HIP
@@ -428,22 +423,35 @@ extern "C" EXPORT hipError_t hipSetupArgument(
   unsigned long long * arg,
   unsigned long long size,
   unsigned long long offset) {
+#if 0
   if (size != (unsigned long long)1) {
-    memcpy((hipi_Ldata->argstruct + hipi_Ldata->argstructsize), arg, size);
-    hipi_Ldata->argstructsize += size;
+#endif
+    memcpy((hipi_Ldata->argstruct + offset), arg, size);
+    if (size == (unsigned long long) 1) 
+      hipi_Ldata->argstructsize = offset + 4;
+    else
+      hipi_Ldata->argstructsize = offset + size;
 
     if ( size == 4 ) {
       unsigned value = (unsigned) *arg;
       DEBUG(hipi_dbgs() << "==>DEBUG:    hipSetupArgument arg: " << arg
                         << " value: " << value << " (0x" << std::hex << value
                         << std::dec << ") with size " << size
-                        << " off: " << offset << "\n");
+                        << " offset: " << offset  
+                        << " current argsize: " << hipi_Ldata->argstructsize<< "\n");
     } else
       DEBUG(hipi_dbgs() << "==>DEBUG:    hipSetupArgument arg: " << arg
                         << " value: " << *arg << " (0x" << std::hex << *arg
                         << std::dec << ") with size " << size
+                        << " offset: " << offset 
+                        << " current argsize: " << hipi_Ldata->argstructsize<< "\n");
+#if 0
+  } else 
+      DEBUG(hipi_dbgs() << "==>DEBUG:    hipSetupArgument arg IGNORED: " << arg
+                        << " value: " << *arg << " (0x" << std::hex << *arg
+                        << std::dec << ") with size " << size
                         << " off: " << offset << "\n");
-  }
+#endif
   return hipSuccess;
 }
 
